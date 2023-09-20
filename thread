@@ -1,0 +1,526 @@
+ public static void main(String[] args) throws Exception {
+        XMLReadWriter111 xmlReadWriter111 = new XMLReadWriter111();
+
+        Thread thread1 = new Thread(() -> {
+            JSch jsch = null;
+            Session session = null;
+            ChannelSftp sftp = null;
+            List<Document> materials = new ArrayList<>();
+            List<Document> erp_mark = new ArrayList<>();
+            List<Document> crossreference = new ArrayList<>();
+            List<Document> dokuinfosatz = new ArrayList<>();
+            try {
+                jsch = new JSch();
+                session = jsch.getSession(username, remoteHost, 22);
+                String knownHostPublicKey =
+                        "10.2.60.253 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC3ylQz98ZHtlbf+3EZk5AdRNnrB7hxZgnIu+eOEmOdc6NvhKLC57WuCoHL1zy4HFOkiSlc6CHue7ir/eISryFbtHgg6HMv71auH84jLHV9A7XHBOm8cfYzggTdNaIQM44PdjuNjfN2It3i5DdfjEiqpTWNIjnI+cptdAb5zUYg0qibTVkraXdVVtiy/5Zc+Qh/3bI3/vpgTT7NzNEyYmRcHqX0YpFYSmmdO/tfm6DgiQmogHtHVHTBrw9k/yEB30oxT6bkrJeYY+u6NvCWi0NPlXudQhrHOitGSJLaGqhO56dfeQRtCTlPa4oYDCLnI7MjLpXes4ke7myKofolWMHT";
+                jsch.setKnownHosts(new ByteArrayInputStream(knownHostPublicKey.getBytes()));
+                session.setPassword(password);
+                // session.setTimeout(300000);
+                System.out.println("Connecting------");
+                session.connect();
+                System.out.println("Established Session");
+
+                Channel channel = session.openChannel("sftp");
+                sftp = (ChannelSftp) channel;
+                sftp.connect();
+                Vector<ChannelSftp.LsEntry> entries = sftp.ls(SOURCE);
+                Lock sftpLock = new ReentrantLock();
+                int numThreads = 4;
+                int filesPerThread = entries.size() / numThreads;
+                int remainingFiles = entries.size() % numThreads;
+                int startIndex = 0;
+                int endIndex = filesPerThread;
+                processXML(startIndex, endIndex, entries, sftp, sftpLock, xmlReadWriter111, materials, erp_mark,
+                        crossreference, dokuinfosatz);
+            } catch (JSchException e) {
+                e.printStackTrace();
+            } catch (SftpException e) {
+                e.printStackTrace();
+            } finally {
+                sftp.disconnect();
+                session.disconnect();
+            }
+        });
+
+        Thread thread2 = new Thread(() -> {
+            JSch jsch = null;
+            Session session = null;
+            ChannelSftp sftp = null;
+            List<Document> materials = new ArrayList<>();
+            List<Document> erp_mark = new ArrayList<>();
+            List<Document> crossreference = new ArrayList<>();
+            List<Document> dokuinfosatz = new ArrayList<>();
+            try {
+                jsch = new JSch();
+                session = jsch.getSession(username, remoteHost, 22);
+                String knownHostPublicKey =
+                        "10.2.60.253 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC3ylQz98ZHtlbf+3EZk5AdRNnrB7hxZgnIu+eOEmOdc6NvhKLC57WuCoHL1zy4HFOkiSlc6CHue7ir/eISryFbtHgg6HMv71auH84jLHV9A7XHBOm8cfYzggTdNaIQM44PdjuNjfN2It3i5DdfjEiqpTWNIjnI+cptdAb5zUYg0qibTVkraXdVVtiy/5Zc+Qh/3bI3/vpgTT7NzNEyYmRcHqX0YpFYSmmdO/tfm6DgiQmogHtHVHTBrw9k/yEB30oxT6bkrJeYY+u6NvCWi0NPlXudQhrHOitGSJLaGqhO56dfeQRtCTlPa4oYDCLnI7MjLpXes4ke7myKofolWMHT";
+                jsch.setKnownHosts(new ByteArrayInputStream(knownHostPublicKey.getBytes()));
+                session.setPassword(password);
+                // session.setTimeout(300000);
+                System.out.println("Connecting------");
+                session.connect();
+                System.out.println("Established Session");
+
+                Channel channel = session.openChannel("sftp");
+                sftp = (ChannelSftp) channel;
+                sftp.connect();
+                Vector<ChannelSftp.LsEntry> entries = sftp.ls(SOURCE);
+                Lock sftpLock = new ReentrantLock();
+                int numThreads = 4;
+                int filesPerThread = entries.size() / numThreads;
+                int remainingFiles = entries.size() % numThreads;
+                int startIndex = filesPerThread;
+                int endIndex = startIndex + filesPerThread;
+                processXML(startIndex, endIndex, entries, sftp, sftpLock, xmlReadWriter111, materials, erp_mark,
+                        crossreference, dokuinfosatz);
+            } catch (JSchException e) {
+                e.printStackTrace();
+            } catch (SftpException e) {
+                e.printStackTrace();
+            } finally {
+                sftp.disconnect();
+                session.disconnect();
+            }
+        });
+
+        Thread thread3 = new Thread(() -> {
+            JSch jsch = null;
+            Session session = null;
+            ChannelSftp sftp = null;
+            List<Document> materials = new ArrayList<>();
+            List<Document> erp_mark = new ArrayList<>();
+            List<Document> crossreference = new ArrayList<>();
+            List<Document> dokuinfosatz = new ArrayList<>();
+            try {
+                jsch = new JSch();
+                session = jsch.getSession(username, remoteHost, 22);
+                String knownHostPublicKey =
+                        "10.2.60.253 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC3ylQz98ZHtlbf+3EZk5AdRNnrB7hxZgnIu+eOEmOdc6NvhKLC57WuCoHL1zy4HFOkiSlc6CHue7ir/eISryFbtHgg6HMv71auH84jLHV9A7XHBOm8cfYzggTdNaIQM44PdjuNjfN2It3i5DdfjEiqpTWNIjnI+cptdAb5zUYg0qibTVkraXdVVtiy/5Zc+Qh/3bI3/vpgTT7NzNEyYmRcHqX0YpFYSmmdO/tfm6DgiQmogHtHVHTBrw9k/yEB30oxT6bkrJeYY+u6NvCWi0NPlXudQhrHOitGSJLaGqhO56dfeQRtCTlPa4oYDCLnI7MjLpXes4ke7myKofolWMHT";
+                jsch.setKnownHosts(new ByteArrayInputStream(knownHostPublicKey.getBytes()));
+                session.setPassword(password);
+                // session.setTimeout(300000);
+                System.out.println("Connecting------");
+                session.connect();
+                System.out.println("Established Session");
+
+                Channel channel = session.openChannel("sftp");
+                sftp = (ChannelSftp) channel;
+                sftp.connect();
+                Vector<ChannelSftp.LsEntry> entries = sftp.ls(SOURCE);
+                Lock sftpLock = new ReentrantLock();
+                int numThreads = 4;
+                int filesPerThread = entries.size() / numThreads;
+                int remainingFiles = entries.size() % numThreads;
+                int startIndex = 2 * filesPerThread;
+                int endIndex = startIndex + filesPerThread;
+                processXML(startIndex, endIndex, entries, sftp, sftpLock, xmlReadWriter111, materials, erp_mark,
+                        crossreference, dokuinfosatz);
+            } catch (JSchException e) {
+                e.printStackTrace();
+            } catch (SftpException e) {
+                e.printStackTrace();
+            } finally {
+                sftp.disconnect();
+                session.disconnect();
+            }
+        });
+
+        Thread thread4 = new Thread(() -> {
+            JSch jsch = null;
+            Session session = null;
+            ChannelSftp sftp = null;
+            List<Document> materials = new ArrayList<>();
+            List<Document> erp_mark = new ArrayList<>();
+            List<Document> crossreference = new ArrayList<>();
+            List<Document> dokuinfosatz = new ArrayList<>();
+            try {
+                jsch = new JSch();
+                session = jsch.getSession(username, remoteHost, 22);
+                String knownHostPublicKey =
+                        "10.2.60.253 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC3ylQz98ZHtlbf+3EZk5AdRNnrB7hxZgnIu+eOEmOdc6NvhKLC57WuCoHL1zy4HFOkiSlc6CHue7ir/eISryFbtHgg6HMv71auH84jLHV9A7XHBOm8cfYzggTdNaIQM44PdjuNjfN2It3i5DdfjEiqpTWNIjnI+cptdAb5zUYg0qibTVkraXdVVtiy/5Zc+Qh/3bI3/vpgTT7NzNEyYmRcHqX0YpFYSmmdO/tfm6DgiQmogHtHVHTBrw9k/yEB30oxT6bkrJeYY+u6NvCWi0NPlXudQhrHOitGSJLaGqhO56dfeQRtCTlPa4oYDCLnI7MjLpXes4ke7myKofolWMHT";
+                jsch.setKnownHosts(new ByteArrayInputStream(knownHostPublicKey.getBytes()));
+                session.setPassword(password);
+                // session.setTimeout(300000);
+                System.out.println("Connecting------");
+                session.connect();
+                System.out.println("Established Session");
+
+                Channel channel = session.openChannel("sftp");
+                sftp = (ChannelSftp) channel;
+                sftp.connect();
+                Vector<ChannelSftp.LsEntry> entries = sftp.ls(SOURCE);
+                Lock sftpLock = new ReentrantLock();
+                int numThreads = 4;
+                int filesPerThread = entries.size() / numThreads;
+                int remainingFiles = entries.size() % numThreads;
+                int startIndex = 3 * filesPerThread;
+                int endIndex = startIndex + filesPerThread + remainingFiles;
+                processXML(startIndex, endIndex, entries, sftp, sftpLock, xmlReadWriter111, materials, erp_mark,
+                        crossreference, dokuinfosatz);
+            } catch (JSchException e) {
+                e.printStackTrace();
+            } catch (SftpException e) {
+                e.printStackTrace();
+            } finally {
+                sftp.disconnect();
+                session.disconnect();
+            }
+        });
+
+        thread1.start();
+        thread2.start();
+        thread3.start();
+        thread4.start();
+
+        thread1.join();
+        thread2.join();
+        thread3.join();
+        thread4.join();
+
+
+    }
+
+
+    private static void processXML(int startIndex, int endIndex, Vector<ChannelSftp.LsEntry> entries, ChannelSftp sftp,
+                                   Lock sftpLock, XMLReadWriter111 xmlReadWriter111, List<Document> materials,
+                                   List<Document> erp_mark, List<Document> crossreference,
+                                   List<Document> dokuinfosatz) {
+        for (int k = startIndex; k < endIndex; k++) {
+            ChannelSftp.LsEntry entry = entries.get(k);
+            //Material"
+            if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("Material")) {
+                String remoteFile = SOURCE + entry.getFilename();
+                System.out.println(Thread.currentThread().getName() + " :" + k);
+                try {
+                    // sftpLock.lock();
+                    materials.add(parseXml(sftp.get(remoteFile)));
+                } catch (SftpException e) {
+                    e.printStackTrace();
+                } finally {
+                    // sftpLock.unlock();
+                }
+            }
+
+            if (materials.size() == 25000 && !materials.isEmpty()) {
+                try {
+                    // sftpLock.lock();
+                    xmlReadWriter111.createOneXMLFile(materials,
+                            "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+                    materials.clear();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    //  sftpLock.unlock();
+                }
+            }
+            //ERP_MARKE
+            if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("ERP_MARKE")) {
+                String remoteFile = SOURCE + entry.getFilename();
+                System.out.println("B " + k);
+                try {
+                    //  sftpLock.lock();
+                    erp_mark.add(parseXml(sftp.get(remoteFile)));
+                } catch (SftpException e) {
+                    e.printStackTrace();
+                } finally {
+                    //  sftpLock.unlock();
+                }
+            }
+
+            if (erp_mark.size() == 25000 && !erp_mark.isEmpty()) {
+                try {
+                     sftpLock.lock();
+                    xmlReadWriter111.createOneXMLFile(erp_mark,
+                            "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+                    erp_mark.clear();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                      sftpLock.unlock();
+                }
+            }
+
+            //Crossreference
+            if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("Crossreference")) {
+                String remoteFile = SOURCE + entry.getFilename();
+                System.out.println("Crossreference " + k);
+                try {
+                    //    sftpLock.lock();
+                    crossreference.add(parseXml(sftp.get(remoteFile)));
+                } catch (SftpException e) {
+                    e.printStackTrace();
+                } finally {
+                    //   sftpLock.unlock();
+                }
+            }
+
+            if (crossreference.size() == 25000 && !crossreference.isEmpty()) {
+                try {
+                        sftpLock.lock();
+                    xmlReadWriter111.createOneXMLFile(crossreference,
+                            "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+                    erp_mark.clear();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                       sftpLock.unlock();
+                }
+            }
+
+            //Dokuinfosatz
+            if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("Dokuinfosatz")) {
+                String remoteFile = SOURCE + entry.getFilename();
+                System.out.println("Dokuinfosatz" + k);
+                try {
+                    //     sftpLock.lock();
+                    dokuinfosatz.add(parseXml(sftp.get(remoteFile)));
+                } catch (SftpException e) {
+                    e.printStackTrace();
+                } finally {
+                    //   sftpLock.unlock();
+                }
+            }
+
+            if (dokuinfosatz.size() == 25000 && !dokuinfosatz.isEmpty()) {
+                try {
+                     sftpLock.lock();
+                    xmlReadWriter111.createOneXMLFile(dokuinfosatz,
+                            "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.ASSETS.value());
+                    erp_mark.clear();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                     sftpLock.unlock();
+                }
+            }
+        }
+
+        if (!materials.isEmpty()) {
+            try {
+                // sftpLock.lock();
+                xmlReadWriter111.createOneXMLFile(materials,
+                        "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                // sftpLock.unlock();
+            }
+        }
+        if (!erp_mark.isEmpty()) {
+            try {
+                //sftpLock.lock();
+                xmlReadWriter111.createOneXMLFile(erp_mark,
+                        "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                //    sftpLock.unlock();
+            }
+        }
+
+        if (!crossreference.isEmpty()) {
+            try {
+                //   sftpLock.lock();
+                xmlReadWriter111.createOneXMLFile(crossreference,
+                        "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                //  sftpLock.unlock();
+            }
+        }
+        if (!dokuinfosatz.isEmpty()) {
+            try {
+                //  sftpLock.lock();
+                xmlReadWriter111.createOneXMLFile(dokuinfosatz,
+                        "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.ASSETS.value());
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                // sftpLock.unlock();
+            }
+        }
+    }
+
+    private static Document parseXml(InputStream inputStream) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            return builder.parse(inputStream);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static void mergeXML(List<Document> files) {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+        try {
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document document = builder.newDocument();
+            Element element = document.createElement("STEP-ProductInformation");
+            Element element1 = document.createElement("Products");
+
+            for (int c = 0; c < files.size(); c++) {
+                Document doc1 = files.get(c);
+                Element e1 = null;
+                NodeList list = doc1.getChildNodes();
+                for (int i = 0; i < list.getLength(); i++) {
+                    Node p = list.item(i);
+                    if (p.getNodeType() == Node.ELEMENT_NODE) {
+                        Element e = (Element) p;
+                        NamedNodeMap map = e.getAttributes();
+                        for (int a = 0; a < map.getLength(); a++) {
+                            Attr importNode = (Attr) document.importNode(map.item(a), true);
+                            element.setAttributeNodeNS(importNode);
+                        }
+                        NodeList list1 = e.getChildNodes();
+                        for (int j = 0; j < list1.getLength(); j++) {
+                            Node p1 = list1.item(j);
+                            if (p1.getNodeType() == Node.ELEMENT_NODE) {
+                                e1 = (Element) p1;
+                                NamedNodeMap map1 = e1.getAttributes();
+                                for (int a = 0; a < map1.getLength(); a++) {
+                                    Attr importNode = (Attr) document.importNode(map1.item(a), true);
+                                    element1.setAttributeNodeNS(importNode);
+                                }
+                            }
+                        }
+                    }
+                }
+                element.appendChild(element1);
+                // Copy Child Nodes
+                NodeList childNodes2 = e1.getChildNodes();
+                for (int x = 0; x < childNodes2.getLength(); x++) {
+                    Node importedNode = document.importNode(childNodes2.item(x), true);
+                    element1.appendChild(importedNode);
+                }
+
+            }
+            document.appendChild(element);
+
+            TransformerFactory tf = TransformerFactory.newInstance();
+            Transformer t = tf.newTransformer();
+            DOMSource source = new DOMSource(document);
+            StreamResult result = new StreamResult(System.out);
+            t.transform(source, result);
+        } catch (ParserConfigurationException parserConfigurationException) {
+            parserConfigurationException.printStackTrace();
+        } catch (TransformerConfigurationException transformerConfigurationException) {
+            transformerConfigurationException.printStackTrace();
+        } catch (TransformerException transformerException) {
+            transformerException.printStackTrace();
+        }
+    }
+}
+####################################
+
+    Thread thread = new Thread(() -> {
+            File[] files1 = new File[files.length / 4];
+            int count = 0;
+            for (int j = 0; j < files.length / 4; j++) {
+                files1[count++] = files[j];
+                if (count == files1.length) {
+                    break;
+                }
+            }
+            Document doc = null;
+            try {
+                doc = merge("/STEP-ProductInformation/Products", files1);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                write(doc, dest);
+            } catch (TransformerConfigurationException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        Thread thread1 = new Thread(() -> {
+            File[] files2 = new File[files.length / 4];
+            int count = 0;
+            for (int j = files.length / 4; j < files.length / 2; j++) {
+                files2[count++] = files[j];
+                if (count == files2.length) {
+                    break;
+                }
+            }
+            Document doc = null;
+            try {
+                doc = merge("/STEP-ProductInformation/Products", files2);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                write(doc, dest);
+            } catch (TransformerConfigurationException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        Thread thread2 = new Thread(() -> {
+            File[] files3 = new File[files.length / 4];
+            int count = 0;
+            for (int j = files.length / 2; j < files.length; j++) {
+                files3[count++] = files[j];
+                if (count == files3.length) {
+                    break;
+                }
+            }
+            Document doc = null;
+            try {
+                doc = merge("/STEP-ProductInformation/Products", files3);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                write(doc, dest);
+            } catch (TransformerConfigurationException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        Thread thread3 = new Thread(() -> {
+            int help = 0;
+            final int i = files.length - (files.length / 4) * 3;
+            File[] files4 = new File[i];
+            help = files.length - i;
+            int count = 0;
+            for (int j = help; j < files.length; j++) {
+                files4[count++] = files[j];
+                if (count == files4.length) {
+                    break;
+                }
+            }
+            Document doc = null;
+            try {
+                doc = merge("/STEP-ProductInformation/Products", files4);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                write(doc, dest);
+            } catch (TransformerConfigurationException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        thread1.start();
+        thread2.start();
+        thread3.start();
+        list.add(thread);
+        list.add(thread1);
+        list.add(thread2);
+        list.add(thread3);

@@ -1,0 +1,447 @@
+package com.company;
+
+import org.w3c.dom.*;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.File;
+import java.io.IOException;
+
+public class TTT {
+    public static void main(String[] args) {
+        String path = "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\muster\\new\\merge\\test.xml";
+        File file = new File(path);
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        try {
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            File file1 = new File(
+                    "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\muster\\new\\merge\\");
+            File[] files = file1.listFiles();
+            Document document = builder.newDocument();
+            Element element = document.createElement("STEP-ProductInformation");
+            Element element1 = document.createElement("Products");
+            for (int c = 0; c < files.length; c++) {
+                Document doc1 = builder.parse(files[c]);
+                Element e1 = null;
+                NodeList list = doc1.getChildNodes();
+                for (int i = 0; i < list.getLength(); i++) {
+                    Node p = list.item(i);
+                    if (p.getNodeType() == Node.ELEMENT_NODE) {
+                        Element e = (Element) p;
+                        NamedNodeMap map = e.getAttributes();
+                        for (int a = 0; a < map.getLength(); a++) {
+                            Attr importNode = (Attr) document.importNode(map.item(a), true);
+                            element.setAttributeNodeNS(importNode);
+                        }
+                        NodeList list1 = e.getChildNodes();
+                        for (int j = 0; j < list1.getLength(); j++) {
+                            Node p1 = list1.item(j);
+                            if (p1.getNodeType() == Node.ELEMENT_NODE) {
+                                e1 = (Element) p1;
+                                NamedNodeMap map1 = e1.getAttributes();
+                                for (int a = 0; a < map1.getLength(); a++) {
+                                    Attr importNode = (Attr) document.importNode(map1.item(a), true);
+                                    element1.setAttributeNodeNS(importNode);
+                                }
+                            }
+                        }
+                    }
+                }
+                element.appendChild(element1);
+                // Copy Child Nodes
+                NodeList childNodes2 = e1.getChildNodes();
+                for (int x = 0; x < childNodes2.getLength(); x++) {
+                    Node importedNode = document.importNode(childNodes2.item(x), true);
+                    element1.appendChild(importedNode);
+                }
+
+            }
+            document.appendChild(element);
+
+            TransformerFactory tf = TransformerFactory.newInstance();
+            Transformer t = tf.newTransformer();
+            DOMSource source = new DOMSource(document);
+            StreamResult result = new StreamResult(System.out);
+            t.transform(source, result);
+        } catch (ParserConfigurationException | TransformerConfigurationException e) {
+            e.printStackTrace();
+        } catch (TransformerException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+
+
+###############
+
+ int m = entries.size() / threads.length;
+         for (int i = 0; i < threads.length; i++) {
+             int from = m * i;
+             int to = (i + 1 == threads.length) ? entries.size() : from + m;
+             System.out.println(from + " : " + to);
+             threads[i] = new Thread(() -> {
+                 int c = 0;
+                 int c1 = 0;
+                 for (int k = from; k < to; k++) {
+                     ChannelSftp.LsEntry entry = entries.get(k);
+                     //Material"
+                     if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("Material")) {
+                         String remoteFile = SOURCE + entry.getFilename();
+                         c++;
+                     //    System.out.println(Thread.currentThread().getName() + " :" + c);
+                         try {
+                             sftpLock.lock();
+                             materials.add(parseXml(sftp.get(remoteFile)));
+                         } catch (SftpException e) {
+                             e.printStackTrace();
+                         }finally {
+                             sftpLock.unlock();
+                         }
+                     }
+
+                     if (k == 300 && !materials.isEmpty()) {
+                         try {
+                             sftpLock.lock();
+                             xmlReadWriter111.createOneXMLFile(materials,
+                                     "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml");
+                             materials.clear();
+                         } catch (Exception e) {
+                             e.printStackTrace();
+                         }finally {
+                             sftpLock.unlock();
+                         }
+                     }
+                     //ERP_MARKE
+                     if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("ERP_MARKE")) {
+                         String remoteFile = SOURCE + entry.getFilename();
+                         c1++;
+                        // System.out.println("B " + c1);
+                         try {
+                             sftpLock.lock();
+                             erp_mark.add(parseXml(sftp.get(remoteFile)));
+                         } catch (SftpException e) {
+                             e.printStackTrace();
+                         }finally {
+                             sftpLock.unlock();
+                         }
+                     }
+
+                     if (k == 300 && !erp_mark.isEmpty()) {
+                         try {
+                             sftpLock.lock();
+                             xmlReadWriter111.createOneXMLFile(erp_mark,
+                                     "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml");
+                             erp_mark.clear();
+                         } catch (Exception e) {
+                             e.printStackTrace();
+                         }finally {
+                             sftpLock.unlock();
+                         }
+                     }
+                 }
+
+                 if (from <= entries.size() && to <= entries.size()) {
+                     if (to == entries.size()) {
+                         try {
+                             sftpLock.lock();
+                             xmlReadWriter111.createOneXMLFile(materials,
+                                     "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml");
+                         } catch (Exception e) {
+                             e.printStackTrace();
+                         }finally {
+                             sftpLock.unlock();
+                         }
+                     }
+                     if (to == entries.size()) {
+                         try {
+                             sftpLock.lock();
+                             xmlReadWriter111.createOneXMLFile(erp_mark,
+                                     "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml");
+                         } catch (Exception e) {
+                             e.printStackTrace();
+                         }finally {
+                             sftpLock.unlock();
+                         }
+                     }
+                 }
+             });
+             threads[i].start();
+         }
+
+         for (int i = 0; i < threads.length; i++) {
+             threads[i].join();
+         }
+
+
+
+
+         /*
+                 for (ChannelSftp.LsEntry entry : entries) {
+                     if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("Material")) {
+                         count++;
+                         String remoteFile = SOURCE + entry.getFilename();
+                         processedDocuments.add(parseXml(sftp.get(remoteFile)));
+                         System.out.println(count);
+                     }
+                     if (processedDocuments.size() == current || current == processedDocuments.size() - 1) {
+                         start = System.currentTimeMillis();
+                         xmlReadWriter111.createOneXMLFile(processedDocuments, "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml\\");
+                         end = System.currentTimeMillis();
+                         System.out.println();
+                         System.out.println("Plain stream took time: " + (end - start));
+                         processedDocuments.clear();
+                     }
+                 }
+                 end = System.currentTimeMillis();
+                 System.out.println();
+                 System.out.println("Plain stream took time: " + (end - start));*/
+
+
+   '''''''''''''''' LETZTE
+    private static void processXML(int startIndex, int endIndex, Vector<ChannelSftp.LsEntry> entries, ChannelSftp sftp,
+                                      Lock sftpLock, XMLReadWriter111 xmlReadWriter111, List<Document> materials,
+                                      List<Document> erp_mark, List<Document> crossreference,
+                                      List<Document> dokuinfosatz) {
+           for (int k = startIndex; k < endIndex; k++) {
+               ChannelSftp.LsEntry entry = entries.get(k);
+               //Material"
+               if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("Material")) {
+                   String remoteFile = SOURCE + entry.getFilename();
+                   System.out.println(Thread.currentThread().getName() + " :" + k);
+                   try {
+                       // sftpLock.lock();
+                       materials.add(parseXml(sftp.get(remoteFile)));
+                   } catch (SftpException e) {
+                       e.printStackTrace();
+                   } finally {
+                       // sftpLock.unlock();
+                   }
+               }
+
+               if (materials.size() == 25000 && !materials.isEmpty()) {
+                   try {
+                       // sftpLock.lock();
+                       xmlReadWriter111.createOneXMLFile(materials,
+                               "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+                       materials.clear();
+                   } catch (Exception e) {
+                       e.printStackTrace();
+                   } finally {
+                       //  sftpLock.unlock();
+                   }
+               }
+               //ERP_MARKE
+               if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("ERP_MARKE")) {
+                   String remoteFile = SOURCE + entry.getFilename();
+                   System.out.println("B " + k);
+                   try {
+                       //  sftpLock.lock();
+                       erp_mark.add(parseXml(sftp.get(remoteFile)));
+                   } catch (SftpException e) {
+                       e.printStackTrace();
+                   } finally {
+                       //  sftpLock.unlock();
+                   }
+               }
+
+               if (erp_mark.size() == 25000 && !erp_mark.isEmpty()) {
+                   try {
+                       sftpLock.lock();
+                       xmlReadWriter111.createOneXMLFile(erp_mark,
+                               "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+                       erp_mark.clear();
+                   } catch (Exception e) {
+                       e.printStackTrace();
+                   } finally {
+                       sftpLock.unlock();
+                   }
+               }
+
+               //Crossreference
+               if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("Crossreference")) {
+                   String remoteFile = SOURCE + entry.getFilename();
+                   System.out.println("Crossreference " + k);
+                   try {
+                       //    sftpLock.lock();
+                       crossreference.add(parseXml(sftp.get(remoteFile)));
+                   } catch (SftpException e) {
+                       e.printStackTrace();
+                   } finally {
+                       //   sftpLock.unlock();
+                   }
+               }
+
+               if (crossreference.size() == 25000 && !crossreference.isEmpty()) {
+                   try {
+                       sftpLock.lock();
+                       xmlReadWriter111.createOneXMLFile(crossreference,
+                               "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+                       erp_mark.clear();
+                   } catch (Exception e) {
+                       e.printStackTrace();
+                   } finally {
+                       sftpLock.unlock();
+                   }
+               }
+
+               //Dokuinfosatz
+               if (!entry.getAttrs().isDir() && entry.getFilename().startsWith("Dokuinfosatz")) {
+                   String remoteFile = SOURCE + entry.getFilename();
+                   System.out.println("Dokuinfosatz" + k);
+                   try {
+                       //     sftpLock.lock();
+                       dokuinfosatz.add(parseXml(sftp.get(remoteFile)));
+                   } catch (SftpException e) {
+                       e.printStackTrace();
+                   } finally {
+                       //   sftpLock.unlock();
+                   }
+               }
+
+               if (dokuinfosatz.size() == 25000 && !dokuinfosatz.isEmpty()) {
+                   try {
+                       sftpLock.lock();
+                       xmlReadWriter111.createOneXMLFile(dokuinfosatz,
+                               "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.ASSETS.value());
+                       erp_mark.clear();
+                   } catch (Exception e) {
+                       e.printStackTrace();
+                   } finally {
+                       sftpLock.unlock();
+                   }
+               }
+           }
+
+           if (!materials.isEmpty()) {
+               try {
+                   // sftpLock.lock();
+                   xmlReadWriter111.createOneXMLFile(materials,
+                           "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+               } catch (Exception e) {
+                   e.printStackTrace();
+               } finally {
+                   // sftpLock.unlock();
+               }
+           }
+           if (!erp_mark.isEmpty()) {
+               try {
+                   //sftpLock.lock();
+                   xmlReadWriter111.createOneXMLFile(erp_mark,
+                           "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+               } catch (Exception e) {
+                   e.printStackTrace();
+               } finally {
+                   //    sftpLock.unlock();
+               }
+           }
+
+           if (!crossreference.isEmpty()) {
+               try {
+                   //   sftpLock.lock();
+                   xmlReadWriter111.createOneXMLFile(crossreference,
+                           "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.PRODUCTS.value());
+               } catch (Exception e) {
+                   e.printStackTrace();
+               } finally {
+                   //  sftpLock.unlock();
+               }
+           }
+           if (!dokuinfosatz.isEmpty()) {
+               try {
+                   //  sftpLock.lock();
+                   xmlReadWriter111.createOneXMLFile(dokuinfosatz,
+                           "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\xml", Tags.ASSETS.value());
+               } catch (Exception e) {
+                   e.printStackTrace();
+               } finally {
+                   // sftpLock.unlock();
+               }
+           }
+       }
+
+       private static Document parseXml(InputStream inputStream) {
+           try {
+               DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+               DocumentBuilder builder = factory.newDocumentBuilder();
+               return builder.parse(inputStream);
+           } catch (Exception e) {
+               e.printStackTrace();
+               return null;
+           }
+       }
+
+       public static void mergeXML(List<Document> files) {
+           DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+           try {
+               DocumentBuilder builder = factory.newDocumentBuilder();
+               Document document = builder.newDocument();
+               Element element = document.createElement("STEP-ProductInformation");
+               Element element1 = document.createElement("Products");
+
+               for (int c = 0; c < files.size(); c++) {
+                   Document doc1 = files.get(c);
+                   Element e1 = null;
+                   NodeList list = doc1.getChildNodes();
+                   for (int i = 0; i < list.getLength(); i++) {
+                       Node p = list.item(i);
+                       if (p.getNodeType() == Node.ELEMENT_NODE) {
+                           Element e = (Element) p;
+                           NamedNodeMap map = e.getAttributes();
+                           for (int a = 0; a < map.getLength(); a++) {
+                               Attr importNode = (Attr) document.importNode(map.item(a), true);
+                               element.setAttributeNodeNS(importNode);
+                           }
+                           NodeList list1 = e.getChildNodes();
+                           for (int j = 0; j < list1.getLength(); j++) {
+                               Node p1 = list1.item(j);
+                               if (p1.getNodeType() == Node.ELEMENT_NODE) {
+                                   e1 = (Element) p1;
+                                   NamedNodeMap map1 = e1.getAttributes();
+                                   for (int a = 0; a < map1.getLength(); a++) {
+                                       Attr importNode = (Attr) document.importNode(map1.item(a), true);
+                                       element1.setAttributeNodeNS(importNode);
+                                   }
+                               }
+                           }
+                       }
+                   }
+                   element.appendChild(element1);
+                   // Copy Child Nodes
+                   NodeList childNodes2 = e1.getChildNodes();
+                   for (int x = 0; x < childNodes2.getLength(); x++) {
+                       Node importedNode = document.importNode(childNodes2.item(x), true);
+                       element1.appendChild(importedNode);
+                   }
+
+               }
+               document.appendChild(element);
+
+               TransformerFactory tf = TransformerFactory.newInstance();
+               Transformer t = tf.newTransformer();
+               DOMSource source = new DOMSource(document);
+               StreamResult result = new StreamResult(System.out);
+               t.transform(source, result);
+           } catch (ParserConfigurationException parserConfigurationException) {
+               parserConfigurationException.printStackTrace();
+           } catch (TransformerConfigurationException transformerConfigurationException) {
+               transformerConfigurationException.printStackTrace();
+           } catch (TransformerException transformerException) {
+               transformerException.printStackTrace();
+           }
+       }
+   }

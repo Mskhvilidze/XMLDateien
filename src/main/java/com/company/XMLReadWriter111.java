@@ -1,7 +1,6 @@
 package com.company;
 
 import com.jcraft.jsch.*;
-import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
@@ -20,16 +19,15 @@ import java.lang.management.MemoryUsage;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class XMLReadWriter111 {
-    private final String MATERIAL = "Material";
-    private final String ERP_MARKE = "ERP_MARKE";
-    private final String CROSSREFERENCE = "Crossreference";
-    private final String DOKUINFOSATZ = "Dokuinfosatz";
-    private FileWriter writer;
+    private static final String MATERIAL = "Material";
+    private static final String ERP_MARKE = "ERP_MARKE";
+    private static final String CROSSREFERENCE = "Crossreference";
+    private static final String DOKUINFOSATZ = "Dokuinfosatz";
+    private final FileWriter writer;
 
     public XMLReadWriter111(FileWriter writer) {
         this.writer = writer;
@@ -42,29 +40,27 @@ public class XMLReadWriter111 {
      * @param expression XPhat-Ausdruck
      * @param files      Files
      * @return Gibt die Document zurück
-     * @throws Exception
      */
     public Document merge(String expression,
-                          File... files) throws Exception {
-        XPathFactory xPathFactory = XPathFactory.newInstance();
-        XPath xpath = xPathFactory.newXPath();
-        XPathExpression compiledExpression = xpath
-                .compile(expression);
-        return merge(compiledExpression, files);
+                          File... files) {
+        try {
+            XPathFactory xPathFactory = XPathFactory.newInstance();
+            XPath xpath = xPathFactory.newXPath();
+            XPathExpression compiledExpression = xpath
+                    .compile(expression);
+            return merge(compiledExpression, files);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**
      * Wird neue DocumentBuildFactory erstellt, um das Document geparst zu werden.
-     *
-     * @param expression
-     * @param files
-     * @return
-     * @throws Exception
      */
     public Document merge(XPathExpression expression,
                           File... files) {
         Document base = null;
-        String fileContent = "";
         try {
             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory
                     .newInstance();
@@ -72,7 +68,7 @@ public class XMLReadWriter111 {
                     .setIgnoringElementContentWhitespace(true);
             DocumentBuilder docBuilder = docBuilderFactory
                     .newDocumentBuilder();
-            fileContent = Files.readString(Path.of(files[0].getPath()), StandardCharsets.UTF_8);
+            String fileContent = Files.readString(Path.of(files[0].getPath()), StandardCharsets.UTF_8);
             if (!fileContent.isEmpty()) {
                 base = docBuilder.parse(files[0]);
                 Node results = (Node) expression.evaluate(base,
@@ -106,7 +102,6 @@ public class XMLReadWriter111 {
     /**
      * Zeigt Start- und Maxwerten
      *
-     * @return
      */
     private long calculate() {
         MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
@@ -120,42 +115,37 @@ public class XMLReadWriter111 {
 
     /**
      * Document anzeigen lassen
-     *
-     * @param doc
-     * @throws Exception
      */
-    public void print(Document doc) throws Exception {
-        TransformerFactory transformerFactory = TransformerFactory
-                .newInstance();
-        Transformer transformer = transformerFactory
-                .newTransformer();
-        DOMSource source = new DOMSource(doc);
-        Result result = new StreamResult(System.out);
-        transformer.transform(source, result);
+    public void print(Document doc) {
+        try {
+            TransformerFactory transformerFactory = TransformerFactory
+                    .newInstance();
+            Transformer transformer = transformerFactory
+                    .newTransformer();
+            DOMSource source = new DOMSource(doc);
+            Result result = new StreamResult(System.out);
+            transformer.transform(source, result);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * Das erstellte Document wird in neue Datei geschrieben.
-     *
-     * @param doc
-     * @throws TransformerConfigurationException
-     * @throws IOException
      */
-    public void write(Document doc, String dest, String tag, String fileName, int size) throws TransformerConfigurationException,
-            IOException {
+    public void write(Document doc, String dest, String tag, String fileName, int size) {
         String uuid = UUID.randomUUID().toString();
-        TransformerFactory tFactory = TransformerFactory.newInstance();
-        Transformer transformer = tFactory.newTransformer();
-        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-        DOMSource source = new DOMSource(doc);
-        StreamResult result = new StreamResult(new StringWriter());
         try (BufferedWriter output = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(dest + "/" + tag + "_" + printSimpleDateFormat(fileName) + "_" + uuid + ".xml")
                 , StandardCharsets.UTF_8))) {
+            TransformerFactory tFactory = TransformerFactory.newInstance();
+            Transformer transformer = tFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            DOMSource source = new DOMSource(doc);
+            StreamResult result = new StreamResult(new StringWriter());
             transformer.transform(source, result);
             String xmlOutput = result.getWriter().toString();
             output.write(xmlOutput);
-            output.close();
             writeTXT("Datei wurde erstell: " + dest + "" + tag + "_" + printSimpleDateFormat(fileName) + "_" + uuid +
                     ".xml " + "Size: " + size + "\r\n\n");
             System.out.println("Ready");
@@ -165,8 +155,7 @@ public class XMLReadWriter111 {
         }
     }
 
-    public void uploadToSFTP(Document doc, String dest, String tag, Session session, String fileName) throws
-            TransformerConfigurationException, IOException {
+    public void uploadToSFTP(Document doc, String dest, String tag, Session session, String fileName) {
         ChannelSftp sftp = null;
         try {
             Channel channel = session.openChannel("sftp");
@@ -177,7 +166,6 @@ public class XMLReadWriter111 {
             Transformer transformer = tFactory.newTransformer();
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             DOMSource source = new DOMSource(doc);
-            StreamResult result = new StreamResult(new StringWriter());
             try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
                 transformer.transform(source, new StreamResult(output));
                 byte[] xmlBytes = output.toByteArray();
@@ -189,7 +177,7 @@ public class XMLReadWriter111 {
             } catch (TransformerException | IOException e) {
                 e.printStackTrace();
             }
-        } catch (JSchException | SftpException e) {
+        } catch (JSchException | SftpException | TransformerConfigurationException e) {
             e.printStackTrace();
         } finally {
             if (sftp != null) {
@@ -202,7 +190,6 @@ public class XMLReadWriter111 {
         SimpleDateFormat formatter = new SimpleDateFormat(
                 "ddMMyyyy_HHmmss ");
         Date currentTime = new Date();
-        // System.out.println(formatter.format(currentTime));        // 2012.04.14 - 21:34:07
         return fileName.split("_").length > 3 ?
                 fileName.split("_")[2] + "_" +
                         fileName.split("_")[3].substring(0, fileName.split("_")[3].length() - 4) :
@@ -211,14 +198,12 @@ public class XMLReadWriter111 {
 
     /**
      * create for XML files
-     *
-     * @throws Exception
      */
-    public void createForXMLFile(List<File> materials, List<File> erp_mark,
+    public void createForXMLFile(List<File> materials, List<File> erpMark,
                                  List<File> crossreference, List<File> dokuinfosatz, String dest,
                                  Session session) throws Exception {
         writeTXT("createMergeThread started: \r\n\n");
-        Thread threadE = createMergeThread(erp_mark, Tags.PRODUCTS.value(), dest + "Marke\\in\\", ERP_MARKE, session);
+        Thread threadE = createMergeThread(erpMark, Tags.PRODUCTS.value(), dest + "Marke\\in\\", ERP_MARKE, session);
         Thread threadC =
                 createMergeThread(crossreference, Tags.PRODUCTS.value(), dest + "Reference\\in\\", CROSSREFERENCE,
                         session);
@@ -236,76 +221,30 @@ public class XMLReadWriter111 {
         threadC.join();
         threadD.join();
         threadM.join();
-        erp_mark.clear();
+        erpMark.clear();
         crossreference.clear();
         dokuinfosatz.clear();
         materials.clear();
-/*
-        //Hier werden Materials separat verarbeitet und zusammengeführt, da sie viel mehr sind, als die anderen
-        writeTXT("Sortirung started: \r\n\n");
-        Collections.sort(materials, Collections.reverseOrder());
-        int numberOfThreads;
-        if (materials.size() > 100000) {
-            numberOfThreads = 4;
-        } else if (materials.size() > 50000) {
-            numberOfThreads = 3;
-        } else if (materials.size() > 25000) {
-            numberOfThreads = 2;
-        } else {
-            numberOfThreads = 1;
-        }
-
-        Thread[] threads = new Thread[numberOfThreads];
-        int m = materials.size() / threads.length;
-        for (int i = 0; i < threads.length; i++) {
-            int from = m * i;
-            int to = (i + 1 == threads.length) ? materials.size() : from + m;
-            threads[i] = new Thread(() -> {
-                List<File> mergeList = new ArrayList<>();
-                for (int k = from; k < to; k++) {
-                    mergeList.add(materials.get(k));
-                    if (mergeList.size() == 25000) {
-                        writeTXT(Thread.currentThread().getName() + " : " + k);
-                        performMergeAndWrite(Tags.PRODUCTS.value(), mergeList, dest + "Materials\\in\\", MATERIAL,
-                                session);
-                        mergeList.clear();
-                    }
-                }
-                if (!mergeList.isEmpty()) {
-                    System.out.println("TEST: " + mergeList.size());
-                    writeTXT("Size < 25000: " + mergeList.size() + "\r\n\n");
-                    performMergeAndWrite(Tags.PRODUCTS.value(), mergeList, dest + "Materials\\in\\", MATERIAL, session);
-                }
-            });
-            threads[i].start();
-        }
-        for (int i = 0; i < threads.length; i++) {
-            try {
-                threads[i].join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }*/
         writer.close();
     }
 
     public Thread createMergeThread(List<File> filesList, String tag, String destination, String name,
                                     Session session) {
         return new Thread(() -> {
-            Collections.sort(filesList, Collections.reverseOrder());
+            filesList.sort(Collections.reverseOrder());
             List<File> mergeList = new ArrayList<>();
-            writeTXT("Thread: " + Thread.currentThread().getName() + "_ " + name + " ist bereit" + "\r\n\n");
-            for (int i = 0; i < filesList.size(); i++) {
-                mergeList.add(filesList.get(i));
+            writeTXT("Thread: " + Thread.currentThread().getName() + "_ " + name + " ist bereit");
+            for (File file : filesList) {
+                mergeList.add(file);
                 if (mergeList.size() == 25000) {
-                    performMergeAndWrite(tag, mergeList, destination, name, session);
                     writeTXT("Size von " + name + ": " + mergeList.size());
+                    performMergeAndWrite(tag, mergeList, destination, name, session);
                     mergeList.clear();
                 }
             }
             if (!mergeList.isEmpty()) {
-                performMergeAndWrite(tag, mergeList, destination, name, session);
                 writeTXT("Rest von " + name + ": " + mergeList.size());
+                performMergeAndWrite(tag, mergeList, destination, name, session);
                 mergeList.clear();
             }
         });
@@ -313,23 +252,16 @@ public class XMLReadWriter111 {
 
     private void performMergeAndWrite(String tag, List<File> fileList, String destination, String name,
                                       Session session) {
-        Document mergedDoc = null;
         try {
             writeTXT("Merge started: " + name + "\r\n\n");
-            mergedDoc = merge("/STEP-ProductInformation/" + tag, fileList.toArray(File[]::new));
-        } catch (Exception e) {
-            writeTXT("Fehler beim Mergen: " + name);
-            e.printStackTrace();
-        }
-
-        try {
+            Document mergedDoc = merge("/STEP-ProductInformation/" + tag, fileList.toArray(File[]::new));
             String fileName = "";
             if (!fileList.isEmpty()) {
                 fileName = fileList.get(0).getName();
             }
-            //uploadToSFTP(mergedDoc, destination, name, session, fileName);
             write(mergedDoc, destination, name, fileName, fileList.size());
-        } catch (TransformerConfigurationException | IOException e) {
+        } catch (Exception e) {
+            writeTXT("Fehler beim Mergen: " + name);
             e.printStackTrace();
         }
     }
@@ -341,56 +273,5 @@ public class XMLReadWriter111 {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private class FilesComparator implements Comparator<File> {
-        @Override
-        public int compare(File o1, File o2) {
-            SimpleDateFormat sdf = new SimpleDateFormat("ddMMyyyy");
-            SimpleDateFormat sdf2 = new SimpleDateFormat("yyyyMMdd");
-            String a = "";
-            String b = "";
-            int result = 0;
-            try {
-                if (o1.getName().split("_").length > 2 && o2.getName().split("_").length > 2) {
-                    a = sdf2.format(sdf.parse(o1.getName().split("_")[2].trim()));
-                    b = sdf2.format(sdf.parse(o2.getName().split("_")[2].trim()));
-                }
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            if (checkEndsWith(o1.getName().split("_")[1].trim()) > checkEndsWith(o2.getName().split("_")[1].trim())) {
-                result = -1;
-            } else if (checkEndsWith(o1.getName().split("_")[1].trim()) <
-                    checkEndsWith(o2.getName().split("_")[1].trim())) {
-                result = 1;
-            } else {
-                if (o1.getName().split("_").length > 3 && o2.getName().split("_").length > 3) {
-                    if (checkEndsWith(a) > checkEndsWith(b)) {
-                        result = -1;
-                    } else if (checkEndsWith(a) < checkEndsWith(b)) {
-                        result = 1;
-                    } else {
-                        if (checkEndsWith(o1.getName().split("_")[3].trim()) >
-                                checkEndsWith(o2.getName().split("_")[3].trim())) {
-                            result = -1;
-                        } else if (checkEndsWith(o1.getName().split("_")[3].trim()) <
-                                checkEndsWith(o2.getName().split("_")[3].trim())) {
-                            result = 1;
-                        }
-                    }
-                }
-            }
-            return result;
-
-        }
-
-    }
-
-    private int checkEndsWith(String name) {
-        if (name.matches(".*[a-zA-Z].*")) {
-            name = "0";
-        }
-        return name.endsWith(".xml") ? Integer.parseInt(StringUtils.removeEnd(name, ".xml")) : Integer.parseInt(name);
     }
 }

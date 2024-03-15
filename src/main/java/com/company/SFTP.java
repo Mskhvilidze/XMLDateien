@@ -14,7 +14,7 @@ public class SFTP {
     private static final String DEST = "\\\\Dezan1vstiddb1\\sap\\"; //"/export/transfer/Qas3/STEP_SAP/Items/test/";
     private static final String SOURCE1 = "/export/transfer/Qas3/STEP_SAP/Items/test/";
     private static final String SOURCE = "/export/transfer/Qas3/SAP_STEP/Items/";
-
+    private static final String ARCHIVE = "\\\\fileserver\\\\FrickeData\\\\_Global\\\\Seeburger_Queries\\\\_SAP_XML_FILES_JAVA\\\\sap\\\\IN\\\\";
     public static void main(String[] args) throws Exception {
         Session session = getConnection();
         session.connect();
@@ -24,16 +24,14 @@ public class SFTP {
         if (!filePath.exists()) {
             filePath.mkdir();
         }
-        //Hier werden dokumentierte Materials  geleert
-        deleteTXT(args[0].trim() + "\\output");
-        System.out.println("PATH " + filePath.getPath());
 
         //Files werden aus dem SFTP Server heruntergeladen
         downloadFiles(session, filePath);
         System.out.println("Herunterladen beendet");
         //in einer TXT wird tägliche Prozessausführung dokumentiert
         XMLReadWriter111 xmlReadWriter111 =
-                new XMLReadWriter111(new FileWriter(ckeckDir(args[0].trim() + "output") + "\\output.txt"));
+                new XMLReadWriter111(new FileWriter(
+                        checkDir(args[0].trim() + "output") + "\\output_" + getDate() +".txt", true));
         //Nur Files werden berücksichtigt
         File[] files = filePath.listFiles(pathname -> {
             String name = pathname.getName().toLowerCase();
@@ -58,7 +56,7 @@ public class SFTP {
         }
         System.out.println("Aufteilen der Dateien in verschiedenen Containern beenden!");
         xmlReadWriter111.createForXMLFile(materials, erp_mark, crossreference, dokuinfosatz,
-                DEST, session);
+                ARCHIVE, session);
 
         System.out.println("Beenden!");
         session.disconnect();
@@ -87,6 +85,7 @@ public class SFTP {
             channel.connect();
             ChannelSftp sftp = (ChannelSftp) channel;
             Vector<ChannelSftp.LsEntry> entries = sftp.ls(SOURCE);
+            System.out.println("Size: " + entries.size());
             Thread[] threads = new Thread[6];
             int m = entries.size() / threads.length;
             for (int i = 0; i < threads.length; i++) {
@@ -103,7 +102,8 @@ public class SFTP {
                             if (!entry.getAttrs().isDir()) {
                                 sftpThread.get(SOURCE + entry.getFilename(),
                                         filePath.getPath().trim());
-                                sftpThread.rm(SOURCE + entry.getFilename());
+                                //sftpThread.rename(SOURCE + entry.getFilename(), ARCHIVE + entry.getFilename());
+                                //sftpThread.rm(SOURCE + entry.getFilename());
                             }
                         }
                     } catch (JSchException | SftpException e) {
@@ -111,9 +111,12 @@ public class SFTP {
                     } finally {
                         if (sftpThread != null) {
                             sftpThread.disconnect();
+                            sftpThread.exit();
                         }
                         if (sftp != null) {
                             sftp.disconnect();
+                            sftp.exit();
+
                         }
                     }
                 });
@@ -130,14 +133,14 @@ public class SFTP {
             e.printStackTrace();
         }
     }
-    private static String getDate() {
+    public static String getDate() {
         SimpleDateFormat formatter = new SimpleDateFormat(
                 "ddMMyyyy_HHmmss ");
         Date currentTime = new Date();
         return formatter.format(currentTime);
     }
 
-    private static String ckeckDir(String dir) {
+    private static String checkDir(String dir) {
         File file = new File(dir);
         if (!file.exists()) {
             file.mkdir();

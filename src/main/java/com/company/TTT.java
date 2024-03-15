@@ -13,11 +13,17 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class TTT {
-    public static void main(String[] args) {
-        String path = "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\muster\\new\\merge\\test.xml";
+    private static final String DEST = "U:\\_Global\\Seeburger_Queries\\_SAP_XML_FILES_JAVA\\sap\\IN\\";
+
+    public static void main(String[] args) throws Exception {
+       /* String path = "C:\\Users\\p05865\\IdeaProjects\\XMLDateien\\muster\\new\\merge\\test.xml";
         File file = new File(path);
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         try {
@@ -79,6 +85,41 @@ public class TTT {
             e.printStackTrace();
         } catch (SAXException e) {
             e.printStackTrace();
+        }*/
+
+        //U:\\_Global\\Seeburger_Queries\\_SAP_XML_FILES_JAVA\\sap\\Stibo\\14032024_160556"
+        File filePath = new File(args[0] + "\\Stibo\\14032024_160556");
+        File[] files = filePath.listFiles(pathname -> {
+            String name = pathname.getName().toLowerCase();
+            return name.endsWith(".xml") && pathname.isFile();
+        });
+        List<File> materials = new ArrayList<>();
+        List<File> erp_mark = new ArrayList<>();
+        List<File> crossreference = new ArrayList<>();
+        List<File> dokuinfosatz = new ArrayList<>();
+        System.out.println("START: ");
+        //Heruntergeladene Dateienw werden in verschiedene Containers aufgeteilt
+        for (File f : files) {
+            if (f.getName().startsWith("Material")) {
+                materials.add(f);
+            } else if (f.getName().startsWith("ERP_MARKE")) {
+                erp_mark.add(f);
+            } else if (f.getName().startsWith("Crossreference")) {
+                crossreference.add(f);
+            } else {
+                dokuinfosatz.add(f);
+            }
         }
+        XMLReadWriter111 xmlReadWriter111 =
+                new XMLReadWriter111(new FileWriter(
+                        args[0] +"\\IN\\" + "output" +
+                                 SFTP.getDate() +".txt", true));
+        System.out.println(materials.size() + " : " + crossreference.size() + " : " + erp_mark.size() + " : " +
+                dokuinfosatz.size());
+        System.out.println("Aufteilen der Dateien in verschiedenen Containern beenden!");
+        xmlReadWriter111.createForXMLFile(materials, erp_mark, crossreference, dokuinfosatz,
+                args[0] + "\\IN\\", null);
+
+        System.out.println("Beenden!");
     }
 }

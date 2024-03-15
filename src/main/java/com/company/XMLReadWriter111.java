@@ -97,13 +97,7 @@ public class XMLReadWriter111 {
                     }
                 }
             }
-        } catch (XPathExpressionException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (SAXException e) {
-            e.printStackTrace();
-        } catch (ParserConfigurationException e) {
+        } catch (XPathExpressionException | IOException | SAXException | ParserConfigurationException e) {
             e.printStackTrace();
         }
         return base;
@@ -147,7 +141,8 @@ public class XMLReadWriter111 {
      * @throws TransformerConfigurationException
      * @throws IOException
      */
-    public void write(Document doc, String dest, String tag, String fileName) throws TransformerConfigurationException, IOException {
+    public void write(Document doc, String dest, String tag, String fileName, int size) throws TransformerConfigurationException,
+            IOException {
         String uuid = UUID.randomUUID().toString();
         TransformerFactory tFactory = TransformerFactory.newInstance();
         Transformer transformer = tFactory.newTransformer();
@@ -161,6 +156,8 @@ public class XMLReadWriter111 {
             String xmlOutput = result.getWriter().toString();
             output.write(xmlOutput);
             output.close();
+            writeTXT("Datei wurde erstell: " + dest + "" + tag + "_" + printSimpleDateFormat(fileName) + "_" + uuid +
+                    ".xml " + "Size: " + size + "\r\n\n");
             System.out.println("Ready");
         } catch (TransformerException | IOException e) {
             writeTXT("Fehler beim Documentschreiben " + tag + " : " + fileName);
@@ -186,7 +183,9 @@ public class XMLReadWriter111 {
                 byte[] xmlBytes = output.toByteArray();
                 ByteArrayInputStream input = new ByteArrayInputStream(xmlBytes);
                 sftp.put(input, dest + "/" + tag + "_" + printSimpleDateFormat(fileName) + "_" + uuid + ".xml");
-                System.out.println("Upload complete");
+                System.out.println(
+                        "Upload complete: " + dest + "/" + tag + "_" + printSimpleDateFormat(fileName) + "_" + uuid +
+                                ".xml");
             } catch (TransformerException | IOException e) {
                 e.printStackTrace();
             }
@@ -218,23 +217,45 @@ public class XMLReadWriter111 {
     public void createForXMLFile(List<File> materials, List<File> erp_mark,
                                  List<File> crossreference, List<File> dokuinfosatz, String dest,
                                  Session session) throws Exception {
+        writeTXT("createMergeThread started: \r\n\n");
         Thread threadE = createMergeThread(erp_mark, Tags.PRODUCTS.value(), dest + "Marke\\in\\", ERP_MARKE, session);
-        Thread threadC = createMergeThread(crossreference, Tags.PRODUCTS.value(), dest + "Reference\\in\\", CROSSREFERENCE, session);
-        Thread threadD = createMergeThread(dokuinfosatz, Tags.ASSETS.value(), dest + "Doc\\in\\", DOKUINFOSATZ, session);
+        Thread threadC =
+                createMergeThread(crossreference, Tags.PRODUCTS.value(), dest + "Reference\\in\\", CROSSREFERENCE,
+                        session);
+        Thread threadD =
+                createMergeThread(dokuinfosatz, Tags.ASSETS.value(), dest + "Doc\\in\\", DOKUINFOSATZ, session);
+        Thread threadM =
+                createMergeThread(materials, Tags.PRODUCTS.value(), dest + "Materials\\\\in\\\\", MATERIAL,
+                        session);
         threadE.start();
         threadC.start();
         threadD.start();
+        threadM.start();
 
         threadE.join();
         threadC.join();
         threadD.join();
+        threadM.join();
         erp_mark.clear();
         crossreference.clear();
         dokuinfosatz.clear();
-
+        materials.clear();
+/*
         //Hier werden Materials separat verarbeitet und zusammengeführt, da sie viel mehr sind, als die anderen
+        writeTXT("Sortirung started: \r\n\n");
         Collections.sort(materials, Collections.reverseOrder());
-        Thread[] threads = new Thread[4];
+        int numberOfThreads;
+        if (materials.size() > 100000) {
+            numberOfThreads = 4;
+        } else if (materials.size() > 50000) {
+            numberOfThreads = 3;
+        } else if (materials.size() > 25000) {
+            numberOfThreads = 2;
+        } else {
+            numberOfThreads = 1;
+        }
+
+        Thread[] threads = new Thread[numberOfThreads];
         int m = materials.size() / threads.length;
         for (int i = 0; i < threads.length; i++) {
             int from = m * i;
@@ -245,11 +266,14 @@ public class XMLReadWriter111 {
                     mergeList.add(materials.get(k));
                     if (mergeList.size() == 25000) {
                         writeTXT(Thread.currentThread().getName() + " : " + k);
-                        performMergeAndWrite(Tags.PRODUCTS.value(), mergeList, dest + "Materials\\in\\", MATERIAL, session);
+                        performMergeAndWrite(Tags.PRODUCTS.value(), mergeList, dest + "Materials\\in\\", MATERIAL,
+                                session);
                         mergeList.clear();
                     }
                 }
                 if (!mergeList.isEmpty()) {
+                    System.out.println("TEST: " + mergeList.size());
+                    writeTXT("Size < 25000: " + mergeList.size() + "\r\n\n");
                     performMergeAndWrite(Tags.PRODUCTS.value(), mergeList, dest + "Materials\\in\\", MATERIAL, session);
                 }
             });
@@ -261,7 +285,7 @@ public class XMLReadWriter111 {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        }
+        }*/
         writer.close();
     }
 
@@ -270,15 +294,19 @@ public class XMLReadWriter111 {
         return new Thread(() -> {
             Collections.sort(filesList, Collections.reverseOrder());
             List<File> mergeList = new ArrayList<>();
+            writeTXT("Thread: " + Thread.currentThread().getName() + "_ " + name + " ist bereit" + "\r\n\n");
             for (int i = 0; i < filesList.size(); i++) {
                 mergeList.add(filesList.get(i));
                 if (mergeList.size() == 25000) {
                     performMergeAndWrite(tag, mergeList, destination, name, session);
+                    writeTXT("Size von " + name + ": " + mergeList.size());
                     mergeList.clear();
                 }
             }
             if (!mergeList.isEmpty()) {
                 performMergeAndWrite(tag, mergeList, destination, name, session);
+                writeTXT("Rest von " + name + ": " + mergeList.size());
+                mergeList.clear();
             }
         });
     }
@@ -287,6 +315,7 @@ public class XMLReadWriter111 {
                                       Session session) {
         Document mergedDoc = null;
         try {
+            writeTXT("Merge started: " + name + "\r\n\n");
             mergedDoc = merge("/STEP-ProductInformation/" + tag, fileList.toArray(File[]::new));
         } catch (Exception e) {
             writeTXT("Fehler beim Mergen: " + name);
@@ -295,11 +324,11 @@ public class XMLReadWriter111 {
 
         try {
             String fileName = "";
-            if (fileList.size() > 0) {
+            if (!fileList.isEmpty()) {
                 fileName = fileList.get(0).getName();
             }
             //uploadToSFTP(mergedDoc, destination, name, session, fileName);
-            write(mergedDoc, destination, name, fileName);
+            write(mergedDoc, destination, name, fileName, fileList.size());
         } catch (TransformerConfigurationException | IOException e) {
             e.printStackTrace();
         }
@@ -307,12 +336,13 @@ public class XMLReadWriter111 {
 
     private void writeTXT(String text) {
         try {
-         writer.write(text + "\n");
-         writer.flush();
+            writer.write(text + "\n");
+            writer.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
     private class FilesComparator implements Comparator<File> {
         @Override
         public int compare(File o1, File o2) {

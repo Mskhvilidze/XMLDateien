@@ -8,9 +8,9 @@ import java.util.*;
 
 public class SFTP {
     //-Xmx12288m
-    private static final String REMOTE_HOST = "10.2.60.253";
-    private static final String USERNAME = "sftp_transfer";
-    private static final String PASSWORD = "d5N5/fJap244";
+    private static final String REMOTE_HOST = "";
+    private static final String USERNAME = "";
+    private static final String PASSWORD = "";
     private static final String DEST = "\\\\Dezan1vstiddb1\\sap\\";
     //private static final String SOURCE1 = "/export/transfer/Qas3/STEP_SAP/Items/test/";
     private static final String SOURCE = "/export/transfer/Qas3/SAP_STEP/Items/";

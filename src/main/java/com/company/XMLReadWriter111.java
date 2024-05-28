@@ -28,6 +28,7 @@ public class XMLReadWriter111 {
     private static final String CROSSREFERENCE = "Crossreference";
     private static final String DOKUINFOSATZ = "Dokuinfosatz";
     private final FileWriter writer;
+    private final List<File> rest = new ArrayList<>();
 
     public XMLReadWriter111(FileWriter writer) {
         this.writer = writer;
@@ -101,7 +102,6 @@ public class XMLReadWriter111 {
 
     /**
      * Zeigt Start- und Maxwerten
-     *
      */
     private long calculate() {
         MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
@@ -201,31 +201,96 @@ public class XMLReadWriter111 {
      */
     public void createForXMLFile(List<File> materials, List<File> erpMark,
                                  List<File> crossreference, List<File> dokuinfosatz, String dest,
-                                 Session session) throws Exception {
-        writeTXT("createMergeThread started: \r\n\n");
-        Thread threadE = createMergeThread(erpMark, Tags.PRODUCTS.value(), dest + "Marke\\in\\", ERP_MARKE, session);
-        Thread threadC =
-                createMergeThread(crossreference, Tags.PRODUCTS.value(), dest + "Reference\\in\\", CROSSREFERENCE,
-                        session);
-        Thread threadD =
-                createMergeThread(dokuinfosatz, Tags.ASSETS.value(), dest + "Doc\\in\\", DOKUINFOSATZ, session);
-        Thread threadM =
-                createMergeThread(materials, Tags.PRODUCTS.value(), dest + "Materials\\\\in\\\\", MATERIAL,
-                        session);
-        threadE.start();
-        threadC.start();
-        threadD.start();
-        threadM.start();
+                                 Session session) {
+        try {
+            writeTXT("createMergeThread started: \r\n\n");
+            Thread threadE =
+                    createMergeThread(erpMark, Tags.PRODUCTS.value(), dest + "Marke\\in\\", ERP_MARKE, session);
+            Thread threadC =
+                    createMergeThread(crossreference, Tags.PRODUCTS.value(), dest + "Reference\\in\\", CROSSREFERENCE,
+                            session);
+            Thread threadD =
+                    createMergeThread(dokuinfosatz, Tags.ASSETS.value(), dest + "Doc\\in\\", DOKUINFOSATZ, session);
+            threadE.start();
+            threadC.start();
+            threadD.start();
 
-        threadE.join();
-        threadC.join();
-        threadD.join();
-        threadM.join();
-        erpMark.clear();
-        crossreference.clear();
-        dokuinfosatz.clear();
-        materials.clear();
-        writer.close();
+            threadE.join();
+            threadC.join();
+            threadD.join();
+            erpMark.clear();
+            crossreference.clear();
+            dokuinfosatz.clear();
+
+            materials.sort(Collections.reverseOrder());
+            //Hier werden Materials separat verarbeitet und zusammengeführt, da sie viel mehr sind, als die anderen
+            createXMLForMaterials(materials, dest, session);
+            materials.clear();
+            if (!rest.isEmpty()) {
+                writeTXT("GesamtRestSize: " + rest.size());
+                Thread threadM =
+                        createMergeThread(rest, Tags.PRODUCTS.value(), dest + "Materials\\\\in\\\\", MATERIAL,
+                                session);
+                threadM.start();
+                threadM.join();
+            }
+            writer.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            writeTXT("Thread join wurde in 'createForXMLFile' unterbrochen: " + e.getMessage() + "\r\n\n");
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void createXMLForMaterials(List<File> materials, String dest, Session session) {
+        int numberOfThreads = getNumberOfThreads(materials);
+        writeTXT("Anzahl an Thread für Materials: " + numberOfThreads + " Size: " + materials.size() + "\r\n\n");
+        Thread[] threads = new Thread[numberOfThreads];
+        int m = materials.size() / threads.length;
+        for (int i = 0; i < threads.length; i++) {
+            int from = m * i;
+            int to = (i + 1 == threads.length) ? materials.size() : from + m;
+            threads[i] = new Thread(() -> {
+                List<File> mergeList = new ArrayList<>();
+                for (int k = from; k < to; k++) {
+                    mergeList.add(materials.get(k));
+                    if (mergeList.size() == 25000 || (k == to - 1 && threads.length == 1)) {
+                        performMergeAndWrite(Tags.PRODUCTS.value(), mergeList, dest + "Materials\\in\\", MATERIAL,
+                                session);
+                        mergeList.clear();
+                    }
+                    if (!mergeList.isEmpty() && k == to - 1) {
+                        writeTXT("Thread: " + Thread.currentThread().getName() + " : hat folgende Restsize: " +
+                                mergeList.size());
+                        fillRestData(mergeList);
+                    }
+                }
+            });
+            threads[i].start();
+        }
+        joinThreads(threads);
+    }
+
+    private void fillRestData(List<File> mergeList) {
+        synchronized (rest) {
+            rest.addAll(mergeList);
+        }
+    }
+
+    private int getNumberOfThreads(List<File> materials) {
+        int numberOfThreads;
+        // Berechnen der Anzahl der Threads basierend auf der Anzahl der Materialien
+        if (materials.isEmpty()) {
+            numberOfThreads = 1; // Mindestens ein Thread wird immer benötigt
+        } else {
+            // Berechnen der Anzahl der Threads basierend auf der Anzahl der Materialien
+            numberOfThreads = (int) Math.ceil(materials.size() / 25000.0);
+
+            // Begrenzung der maximalen Anzahl von Threads auf 4
+            numberOfThreads = Math.min(numberOfThreads, 6);
+        }
+
+        return numberOfThreads;
     }
 
     public Thread createMergeThread(List<File> filesList, String tag, String destination, String name,
@@ -233,7 +298,8 @@ public class XMLReadWriter111 {
         return new Thread(() -> {
             filesList.sort(Collections.reverseOrder());
             List<File> mergeList = new ArrayList<>();
-            writeTXT("Thread: " + Thread.currentThread().getName() + "_ " + name + " ist bereit");
+            writeTXT("Thread: " + Thread.currentThread().getName() + "_ " + name + " ist für Rest bereit => Size: " +
+                    filesList.size());
             for (File file : filesList) {
                 mergeList.add(file);
                 if (mergeList.size() == 25000) {
@@ -252,8 +318,9 @@ public class XMLReadWriter111 {
 
     private void performMergeAndWrite(String tag, List<File> fileList, String destination, String name,
                                       Session session) {
+        System.out.println("Seesion: " + session.isConnected());
         try {
-            writeTXT("Merge started: " + name + "\r\n\n");
+            writeTXT(Thread.currentThread().getName() + " Merge started: " + name + "\r\n\n");
             Document mergedDoc = merge("/STEP-ProductInformation/" + tag, fileList.toArray(File[]::new));
             String fileName = "";
             if (!fileList.isEmpty()) {
@@ -263,6 +330,18 @@ public class XMLReadWriter111 {
         } catch (Exception e) {
             writeTXT("Fehler beim Mergen: " + name);
             e.printStackTrace();
+        }
+    }
+
+    private void joinThreads(Thread... threads) {
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                writeTXT("Thread join wurde in 'joinThreads' unterbrochen: " + e.getMessage() + "\r\n\n");
+                Thread.currentThread().interrupt();
+            }
         }
     }
 

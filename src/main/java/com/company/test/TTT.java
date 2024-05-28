@@ -1,5 +1,7 @@
-package com.company;
+package com.company.test;
 
+import com.company.SFTP;
+import com.company.XMLReadWriter111;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 

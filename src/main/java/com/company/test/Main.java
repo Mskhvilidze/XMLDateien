@@ -1,4 +1,4 @@
-package com.company;
+package com.company.test;
 
 import java.io.*;
 
@@ -6,7 +6,7 @@ public class Main {
 
 
     public static void main(String[] args) throws Exception {
-        com.company.XMLReadWriter xmlReadWriter = new com.company.XMLReadWriter();
+        XMLReadWriter xmlReadWriter = new XMLReadWriter();
         File file2 = new File(getReplaceWhitespaces(args[1]));
         File file = new File(getReplaceWhitespaces(args[0]));
         if (!file2.exists()) {

@@ -14,13 +14,18 @@ public class SFTP {
     private static final String DEST = "\\\\Dezan1vstiddb1\\sap\\";
     //private static final String SOURCE1 = "/export/transfer/Qas3/STEP_SAP/Items/test/";
     private static final String SOURCE = "/export/transfer/Qas3/SAP_STEP/Items/";
-    //private static final String ARCHIVE = "\\\\fileserver\\\\FrickeData\\\\_Global\\\\Seeburger_Queries\\\\_SAP_XML_FILES_JAVA\\\\sap\\\\IN\\\\";
+    private static final String ARCHIVE = "\\\\fileserver\\\\FrickeData\\\\_Global\\\\Seeburger_Queries\\\\_SAP_XML_FILES_JAVA\\\\sap\\\\IN\\\\";
 
     public static void main(String[] args) {
+        final long timeStart = System.currentTimeMillis();
         try {
             Session session = establishSession();
             System.out.println("Established Session");
 
+            if (args.length < 1) {
+                System.out.println("Pfad wurde nicht angegeben, daher wird das Programm beendet!");
+                System.exit(0);
+            }
             //jeden Tag wird ein Verzeichnis erstellt, in dem aktuelle Dateien heruntergeladen werden
             File filePath = createDirectory(args[0]);
             if (filePath == null) {
@@ -45,10 +50,13 @@ public class SFTP {
 
             System.out.println("Aufteilen der Dateien in verschiedenen Containern beenden!");
             xmlReadWriter111.createForXMLFile(materials, erpMarke, crossreference, dokuinfosatz,
-                    DEST, session);
+                    ARCHIVE, session);
 
             System.out.println("Beenden!");
             session.disconnect();
+            System.out.println("Seesion in Main: " + session.isConnected());
+            final long timeEnd = System.currentTimeMillis();
+            System.out.println("Verlaufszeit der Schleife: " + (timeEnd - timeStart) + " Millisek.");
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -167,7 +175,8 @@ public class SFTP {
                             if (!entry.getAttrs().isDir()) {
                                 sftpThread.get(SOURCE + entry.getFilename(),
                                         filePath.getPath().trim());
-                                sftpThread.rm(SOURCE + entry.getFilename());
+                                System.out.println("FileName: " + entry.getFilename());
+                                //sftpThread.rm(SOURCE + entry.getFilename());
                             }
                         }
                     } catch (JSchException | SftpException e) {

@@ -1,4 +1,4 @@
-package com.company;
+package com.company.test;
 
 import com.jcraft.jsch.ChannelSftp;
 
